@@ -1,107 +1,87 @@
-import { Component } from 'react';
-import { searchImages } from '../api/api';
+import { useEffect, useState } from 'react';
 import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Modal } from './Modal/Modal';
 import { Button } from './Button/Button';
 import { Loader } from './Loader/Loader';
+import { searchImages } from '../api/api';
 
-export class App extends Component {
-  state = {
-    images: [],
-    loadMore: false,
-    loading: false,
-    error: undefined,
-    page: 1,
-    perPage: 12,
-    query: '',
-    modalOpen: false,
-    modalUrl: null,
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [loadMore, setLoadMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalUrl, setModalUrl] = useState(null);
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.page !== prevState.page) {
-      this.searchImages();
-    } else if (this.state.query !== prevState.query) {
-      this.searchImages(true);
+  useEffect(() => {
+    if (query) {
+      loadImages();
     }
-  }
+  }, [page]);
 
-  handleQuerySubmit = query => {
-    this.setState({
-      query,
-    });
+  useEffect(() => {
+    if (query) {
+      loadImages(true);
+    }
+  }, [query]);
+
+  const handleQuerySubmit = query => {
+    setQuery(query);
   };
 
-  handleImageClick = url => {
-    this.setState({
-      modalOpen: true,
-      modalUrl: url,
-    });
+  const handleImageClick = url => {
+    setModalOpen(true);
+    setModalUrl(url);
   };
 
-  handleLoadMore = () => {
-    this.setState(prev => ({
-      page: prev.page + 1,
-    }));
+  const handleLoadMore = () => {
+    setPage(page => page + 1);
   };
 
-  async searchImages(clean) {
-    this.setState({
-      loadMore: false,
-      loading: true,
-      error: undefined,
-    });
+  const handleModalClose = () => {
+    setModalOpen(false);
+  };
+
+  const loadImages = async clean => {
+    setLoadMore(false);
+    setLoading(true);
 
     try {
-      const images = await searchImages(this.state.query, this.state.page);
+      const images = await searchImages(query, page);
 
-      this.setState(prev => {
-        let updatedImages = [...prev.images, ...images.hits];
-
+      setImages(prev => {
         if (clean) {
-          updatedImages = images.hits;
+          return images.hits;
         }
 
-        return {
-          images: updatedImages,
-          loadMore: this.state.page < Math.ceil(images.total / 12),
-        };
+        return [...prev, ...images.hits];
       });
+
+      setLoadMore(page < Math.ceil(images.total / 12));
     } catch (e) {
-      this.setState({
-        error: 'Failed to load images',
-      });
     } finally {
-      this.setState({
-        loading: false,
-      });
+      setLoading(false);
     }
-  }
+  };
 
-  render() {
-    return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gridGap: '16px',
-          paddingBottom: '24px',
-        }}
-      >
-        <Searchbar onSubmit={this.handleQuerySubmit} />
-        <ImageGallery
-          images={this.state.images}
-          onOpenModal={this.handleImageClick}
-        />
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gridGap: '16px',
+        paddingBottom: '24px',
+      }}
+    >
+      <Searchbar onSubmit={handleQuerySubmit} />
+      <ImageGallery images={images} onOpenModal={handleImageClick} />
 
-        {this.state.loadMore && (
-          <Button onLoadMoreClick={this.handleLoadMore} />
-        )}
+      {loadMore && <Button onLoadMoreClick={handleLoadMore} />}
 
-        <Loader visible={this.state.loading} />
-        <Modal open={this.state.modalOpen} url={this.state.modalUrl} />
-      </div>
-    );
-  }
-}
+      <Loader visible={loading} />
+      {modalOpen && <Modal url={modalUrl} onClose={handleModalClose} />}
+    </div>
+  );
+};
