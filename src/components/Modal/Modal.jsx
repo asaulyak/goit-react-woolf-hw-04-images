@@ -1,18 +1,18 @@
 import css from './Modal.module.css';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 export const Modal = ({ url, onClose }) => {
-  const handleEsc = event => {
+  const handleEsc = useCallback(event => {
     if (event.keyCode === 27) {
       onClose();
     }
-  };
+  }, [onClose]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleEsc, false);
 
     return () => document.removeEventListener('keydown', handleEsc, false);
-  }, []);
+  }, [handleEsc]);
 
   const handleOverlayClick = () => {
     onClose();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Modal } from './Modal/Modal';
@@ -15,17 +15,40 @@ export const App = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalUrl, setModalUrl] = useState(null);
 
-  useEffect(() => {
-    if (query) {
-      loadImages();
-    }
-  }, [page]);
+  const loadImages = useCallback(
+    async clean => {
+      setLoadMore(false);
+      setLoading(true);
+
+      try {
+        const images = await searchImages(query, page);
+
+        setImages(prev => {
+          if (clean) {
+            return images.hits;
+          }
+
+          return [...prev, ...images.hits];
+        });
+
+        setLoadMore(page < Math.ceil(images.total / 12));
+      } catch (e) {
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, query]
+  );
+  const queryRef = useRef(null);
 
   useEffect(() => {
     if (query) {
-      loadImages(true);
+      const queryChanged = queryRef.current !== query;
+      loadImages(queryChanged);
     }
-  }, [query]);
+
+    queryRef.current = query;
+  }, [page, query, loadImages]);
 
   const handleQuerySubmit = query => {
     setQuery(query);
@@ -42,28 +65,6 @@ export const App = () => {
 
   const handleModalClose = () => {
     setModalOpen(false);
-  };
-
-  const loadImages = async clean => {
-    setLoadMore(false);
-    setLoading(true);
-
-    try {
-      const images = await searchImages(query, page);
-
-      setImages(prev => {
-        if (clean) {
-          return images.hits;
-        }
-
-        return [...prev, ...images.hits];
-      });
-
-      setLoadMore(page < Math.ceil(images.total / 12));
-    } catch (e) {
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
