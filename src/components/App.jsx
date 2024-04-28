@@ -36,12 +36,10 @@ export const App = () => {
     }
   }, [page, query]);
 
-  useEffect(() => {
-    setImages([]);
-  }, [query]);
-
   const handleQuerySubmit = query => {
     setQuery(query);
+    setPage(1);
+    setImages([]);
   };
 
   const handleImageClick = url => {
